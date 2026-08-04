@@ -4,6 +4,8 @@ dotenv.config({ path: './.env' });
 import cors from "cors";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js"
+import eventRoutes from "./routes/events.js"
+import bookingRoutes from "./routes/booking.js"
 
 const app = express();
 app.use(cors());
@@ -11,6 +13,8 @@ app.use(express.json());
 
 
 app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 
 // Root test route
