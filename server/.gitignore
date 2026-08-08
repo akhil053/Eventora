@@ -1,2 +1,16 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment secrets
 .env
+.env.local
+.env.production
+
+# Logs
+npm-debug.log*
+logs/
+*.log
+
+# Operating system
+.DS_Store
+Thumbs.db

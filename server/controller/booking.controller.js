@@ -106,9 +106,7 @@ export const confirmBooking = async (req, res) => {
     try {
         const { paymentStatus } = req.body;
 
-        const booking = await Booking.findById(
-            req.params.id
-        )
+        const booking = await Booking.findById(req.params.id)
             .populate("userId")
             .populate("eventId");
 
@@ -124,14 +122,23 @@ export const confirmBooking = async (req, res) => {
             });
         }
 
-        const event = await Event.findById(
-            booking.eventId._id
-        );
+        if (!booking.eventId) {
+            return res.status(400).json({
+                message: "Associated event not found or has been deleted",
+            });
+        }
+
+        const event = await Event.findById(booking.eventId._id || booking.eventId);
+
+        if (!event) {
+            return res.status(404).json({
+                message: "Event not found",
+            });
+        }
 
         if (event.availableSeats <= 0) {
             return res.status(400).json({
-                message:
-                    "No seats available to confirm this booking",
+                message: "No seats available to confirm this booking",
             });
         }
 
@@ -146,17 +153,24 @@ export const confirmBooking = async (req, res) => {
         event.availableSeats -= 1;
         await event.save();
 
-        await SendBookingEmail(
-            booking.userId.email,
-            booking.userId.name,
-            booking.eventId.title
-        );
+        if (booking.userId?.email && booking.eventId?.title) {
+            try {
+                await SendBookingEmail(
+                    booking.userId.email,
+                    booking.userId.name || "Attendee",
+                    booking.eventId.title
+                );
+            } catch (emailError) {
+                console.error("Confirmation email failed:", emailError.message);
+            }
+        }
 
         res.json({
             message: "Booking confirmed successfully",
             booking,
         });
     } catch (error) {
+        console.error("confirmBooking controller error:", error);
         res.status(500).json({
             message: "Server Error",
             error: error.message,
