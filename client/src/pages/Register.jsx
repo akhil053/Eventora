@@ -42,7 +42,7 @@ const Register = () => {
                 {
                     theme: 'filled_black',
                     size: 'large',
-                    width: '100%',
+                    width: 280,
                     shape: 'rectangular',
                     text: 'signup_with',
                     logo_alignment: 'center',

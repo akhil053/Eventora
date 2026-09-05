@@ -3,9 +3,19 @@ dotenv.config({ path: "./.env" });
 
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
+
+if (!resend) {
+  console.warn("⚠️  RESEND_API_KEY not set — email sending is disabled. OTP emails will be logged to console only.");
+}
 
 export const SendBookingEmail = async (userEmail, userName, eventName) => {
+  if (!resend) {
+    console.log(`[Email disabled] Booking confirmation for ${eventName} would be sent to ${userEmail}`);
+    return true;
+  }
   try {
     const { data, error } = await resend.emails.send({
       from: process.env.EMAIL_FROM,
@@ -62,6 +72,10 @@ export const sendOtpEmail = async (
   otp,
   type = "account_verification"
 ) => {
+  if (!resend) {
+    console.log(`[Email disabled] OTP for ${email} (${type}): ${otp}`);
+    return { id: 'email-disabled' };
+  }
   try {
     const title =
       type === "account_verification"
