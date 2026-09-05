@@ -27,7 +27,8 @@ export const registerUser = async (req , res)=>{
     const hashedPassword = await bcrypt.hash(password, salt);
 
     try {
-        const user = await User.create({name , email , password : hashedPassword , role: "user",isVerified: false});
+        const username = `@${email.split('@')[0]}`;
+        const user = await User.create({ name, username, email, password: hashedPassword, role: "user", isVerified: false });
     
         const otp = Math.floor(1000 + Math.random() * 9000);
 
@@ -87,6 +88,7 @@ export const loginUser = async (req , res)=>{
             user:{
                 id: user._id,
                 name : user.name,
+                username: user.username || `@${user.email.split('@')[0]}`,
                 email: user.email,
                 role : user.role,
                 token: generateToken(user._id , user.role)
@@ -134,6 +136,7 @@ export const verifyOTP = async (req , res)=>{
             user : {
                 id : user._id,
                 name : user.name,
+                username: user.username || `@${user.email.split('@')[0]}`,
                 email : user.email,
                 role : user.role,
                 token : generateToken(user._id , user.role)
@@ -183,6 +186,7 @@ export const googleAuth = async (req, res) => {
             // Create new user (no password needed for Google auth)
             user = await User.create({
                 name,
+                username: `@${email.split('@')[0]}`,
                 email,
                 googleId,
                 authProvider: 'google',
@@ -196,6 +200,7 @@ export const googleAuth = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
+                username: user.username || `@${email.split('@')[0]}`,
                 email: user.email,
                 role: user.role,
                 token: generateToken(user._id, user.role),

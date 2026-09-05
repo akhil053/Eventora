@@ -342,10 +342,18 @@ const AdminDashboard = () => {
                 {/* Page Title & Active Events Subtitle */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-3 border-b border-[#2A2A2A]">
                     <div>
-                        <h1 className="text-lg font-bold text-[#F2F2F2]">Admin Dashboard</h1>
-                        <p className="text-[#8A8A8A] text-xs mt-0.5">
-                            {events.length} active events
-                        </p>
+                        <h1 className="text-lg font-bold text-[#F2F2F2]">
+                            Welcome, <span className="text-[#E50914]">{user?.name || 'Admin'}</span> 👋
+                        </h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[11px] font-semibold text-red-400 bg-[#E50914]/10 px-2 py-0.5 rounded border border-[#E50914]/20">
+                                {user?.username || `@${user?.email?.split('@')[0] || 'admin'}`}
+                            </span>
+                            <span className="text-[#666666]">·</span>
+                            <span className="text-[#8A8A8A] text-xs">
+                                {user?.email} · {events.length} active events
+                            </span>
+                        </div>
                     </div>
 
                     <button

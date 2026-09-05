@@ -3,12 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../utils/axios';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarAlt, FaMapMarkerAlt, FaArrowLeft, FaChair } from 'react-icons/fa';
+import EventCard from '../components/EventCard';
 
 const EventDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
     const [event, setEvent] = useState(null);
+    const [otherEvents, setOtherEvents] = useState([]);
     const [existingBooking, setExistingBooking] = useState(null); // user's booking for this event
     const [loading, setLoading] = useState(true);
     const [bookingLoading, setBookingLoading] = useState(false);
@@ -19,16 +21,24 @@ const EventDetail = () => {
 
     useEffect(() => {
         const fetchAll = async () => {
+            setLoading(true);
             try {
-                // Fetch event + user's bookings in parallel
-                const promises = [api.get(`/events/${id}`)];
+                // Fetch event details, all events, and user's bookings in parallel
+                const promises = [
+                    api.get(`/events/${id}`),
+                    api.get('/events')
+                ];
                 if (user) promises.push(api.get('/bookings/my'));
 
-                const [eventRes, bookingsRes] = await Promise.all(promises);
+                const [eventRes, allEventsRes, bookingsRes] = await Promise.all(promises);
                 setEvent(eventRes.data);
 
+                if (allEventsRes.data) {
+                    const filtered = allEventsRes.data.filter(e => e._id !== id);
+                    setOtherEvents(filtered);
+                }
+
                 if (bookingsRes) {
-                    // Find if user already has an active booking for this event
                     const match = bookingsRes.data.find(
                         b => b.eventId?._id === id && b.status !== 'cancelled'
                     );
@@ -58,7 +68,6 @@ const EventDetail = () => {
                 setSuccessMsg('Booking requested! Awaiting confirmation.');
                 setShowOTP(false);
                 setEvent({ ...event, availableSeats: event.availableSeats - 1 });
-                // Mark as locally booked so the panel updates immediately
                 setExistingBooking({ status: 'pending', amount: event.ticketPrice });
             }
         } catch (err) {
@@ -112,7 +121,7 @@ const EventDetail = () => {
             {/* Content */}
             <div className="max-w-5xl mx-auto px-6 -mt-16 relative z-10 pb-20">
                 <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Left */}
+                    {/* Left Details */}
                     <div className="flex-1 min-w-0">
                         <p className="text-[#E50914] text-xs font-semibold uppercase tracking-wide mb-2">{event.category}</p>
                         <h1 className="text-3xl font-bold text-white mb-5 leading-snug">{event.title}</h1>
@@ -128,20 +137,20 @@ const EventDetail = () => {
                             </div>
                         </div>
 
-                        <div className="bg-[#1f1f1f] rounded-lg p-5 mb-4">
-                            <h2 className="text-white text-sm font-semibold mb-2">About</h2>
+                        <div className="bg-[#1f1f1f] rounded-lg p-5 mb-4 border border-white/5">
+                            <h2 className="text-white text-sm font-semibold mb-2">About Event</h2>
                             <p className="text-gray-400 text-sm leading-relaxed">{event.description}</p>
                         </div>
 
                         <div className="flex gap-4">
-                            <div className="bg-[#1f1f1f] rounded-lg p-4 flex-1 text-center">
-                                <p className="text-gray-500 text-xs mb-1">Price</p>
+                            <div className="bg-[#1f1f1f] rounded-lg p-4 flex-1 text-center border border-white/5">
+                                <p className="text-gray-500 text-xs mb-1">Ticket Price</p>
                                 <p className="text-white font-semibold text-sm">
                                     {event.ticketPrice === 0 ? <span className="text-green-400">Free</span> : `₹${event.ticketPrice}`}
                                 </p>
                             </div>
-                            <div className="bg-[#1f1f1f] rounded-lg p-4 flex-1 text-center">
-                                <p className="text-gray-500 text-xs mb-1">Available</p>
+                            <div className="bg-[#1f1f1f] rounded-lg p-4 flex-1 text-center border border-white/5">
+                                <p className="text-gray-500 text-xs mb-1">Seats Available</p>
                                 <p className="text-white font-semibold text-sm flex items-center justify-center gap-1">
                                     <FaChair className="text-gray-500 text-xs" />
                                     {event.availableSeats} / {event.totalSeats}
@@ -152,9 +161,7 @@ const EventDetail = () => {
 
                     {/* Booking Panel */}
                     <div className="w-full lg:w-72 flex-shrink-0">
-                        <div className="bg-[#1f1f1f] rounded-lg p-5 sticky top-24">
-
-                            {/* Already booked */}
+                        <div className="bg-[#1f1f1f] rounded-lg p-5 sticky top-24 border border-white/5">
                             {alreadyBooked ? (
                                 <>
                                     <p className="text-gray-400 text-sm font-medium mb-1">You're registered</p>
@@ -176,68 +183,91 @@ const EventDetail = () => {
                                     </p>
                                 </>
                             ) : (
-                            /* ── Not booked — normal booking flow ── */
-                            <>
-                                <h3 className="text-white font-semibold text-sm mb-4">Book your spot</h3>
+                                <>
+                                    <h3 className="text-white font-semibold text-sm mb-4">Book your spot</h3>
 
-                                {successMsg && !showOTP && (
-                                    <div className="bg-green-900/30 border border-green-800/40 text-green-400 text-xs px-3 py-2.5 rounded mb-4">
-                                        {successMsg}
+                                    {successMsg && !showOTP && (
+                                        <div className="bg-green-900/30 border border-green-800/40 text-green-400 text-xs px-3 py-2.5 rounded mb-4">
+                                            {successMsg}
+                                        </div>
+                                    )}
+                                    {successMsg && showOTP && (
+                                        <div className="bg-[#1a1a2e] border border-blue-800/30 text-blue-300 text-xs px-3 py-2.5 rounded mb-4">
+                                            {successMsg}
+                                        </div>
+                                    )}
+                                    {error && (
+                                        <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs px-3 py-2.5 rounded mb-4">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    {showOTP && (
+                                        <div className="mb-4">
+                                            <label className="block text-gray-400 text-xs font-medium mb-1.5">Enter OTP</label>
+                                            <input
+                                                id="booking-otp-input"
+                                                type="text"
+                                                placeholder="- - - -"
+                                                className="w-full bg-[#2a2a2a] border border-white/10 text-white text-sm rounded px-3 py-2.5 focus:outline-none focus:border-white/30 transition-colors tracking-widest text-center font-bold"
+                                                value={otp}
+                                                onChange={(e) => setOtp(e.target.value)}
+                                                maxLength="6"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <button
+                                        id="book-now-btn"
+                                        onClick={handleBooking}
+                                        disabled={isSoldOut || bookingLoading || (showOTP && !otp) || booked}
+                                        className="w-full bg-[#E50914] hover:bg-[#c9080f] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 rounded transition-colors"
+                                    >
+                                        {bookingLoading ? 'Processing...'
+                                            : booked ? 'Requested'
+                                            : isSoldOut ? 'Sold Out'
+                                            : showOTP ? 'Confirm with OTP'
+                                            : 'Register Now'}
+                                    </button>
+
+                                    {!user && (
+                                        <p className="text-gray-600 text-xs text-center mt-3">
+                                            <Link to="/login" className="text-gray-400 hover:text-white underline">Sign in</Link> to book
+                                        </p>
+                                    )}
+
+                                    <div className="mt-4 pt-4 border-t border-white/5 text-xs text-gray-600 text-center">
+                                        {event.availableSeats} seats remaining
                                     </div>
-                                )}
-                                {successMsg && showOTP && (
-                                    <div className="bg-[#1a1a2e] border border-blue-800/30 text-blue-300 text-xs px-3 py-2.5 rounded mb-4">
-                                        {successMsg}
-                                    </div>
-                                )}
-                                {error && (
-                                    <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs px-3 py-2.5 rounded mb-4">
-                                        {error}
-                                    </div>
-                                )}
-
-                                {showOTP && (
-                                    <div className="mb-4">
-                                        <label className="block text-gray-400 text-xs font-medium mb-1.5">Enter OTP</label>
-                                        <input
-                                            id="booking-otp-input"
-                                            type="text"
-                                            placeholder="- - - -"
-                                            className="w-full bg-[#2a2a2a] border border-white/10 text-white text-sm rounded px-3 py-2.5 focus:outline-none focus:border-white/30 transition-colors tracking-widest text-center font-bold"
-                                            value={otp}
-                                            onChange={(e) => setOtp(e.target.value)}
-                                            maxLength="6"
-                                        />
-                                    </div>
-                                )}
-
-                                <button
-                                    id="book-now-btn"
-                                    onClick={handleBooking}
-                                    disabled={isSoldOut || bookingLoading || (showOTP && !otp) || booked}
-                                    className="w-full bg-[#E50914] hover:bg-[#c9080f] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 rounded transition-colors"
-                                >
-                                    {bookingLoading ? 'Processing...'
-                                        : booked ? 'Requested'
-                                        : isSoldOut ? 'Sold Out'
-                                        : showOTP ? 'Confirm with OTP'
-                                        : 'Register Now'}
-                                </button>
-
-                                {!user && (
-                                    <p className="text-gray-600 text-xs text-center mt-3">
-                                        <Link to="/login" className="text-gray-400 hover:text-white underline">Sign in</Link> to book
-                                    </p>
-                                )}
-
-                                <div className="mt-4 pt-4 border-t border-white/5 text-xs text-gray-600 text-center">
-                                    {event.availableSeats} seats remaining
-                                </div>
-                            </>
+                                </>
                             )}
                         </div>
                     </div>
                 </div>
+
+                {/* Bottom Section: Other Events You Might Like */}
+                {otherEvents.length > 0 && (
+                    <div className="mt-16 border-t border-white/10 pt-10">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h2 className="text-white text-xl font-bold">Other Events You Might Like</h2>
+                                <p className="text-gray-500 text-xs mt-1">Discover more upcoming events and experiences</p>
+                            </div>
+                            <Link to="/" className="text-xs text-[#E50914] hover:underline font-semibold">
+                                View All
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {otherEvents.slice(0, 4).map((otherEv) => (
+                                <EventCard
+                                    key={otherEv._id}
+                                    event={otherEv}
+                                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
