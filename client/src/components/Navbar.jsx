@@ -45,10 +45,11 @@ const Navbar = () => {
                                 className="text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-2"
                             >
                                 <span>Dashboard</span>
-                                <span className="text-[11px] font-medium bg-white/10 text-gray-200 px-2.5 py-0.5 rounded-full border border-white/10 flex items-center gap-1">
-                                    <span>{user.name}</span>
-                                    <span className="text-red-400 font-semibold">({user.username || `@${user.email?.split('@')[0]}`})</span>
-                                </span>
+                                {user?.name && (
+                                    <span className="text-[11px] font-medium bg-white/10 text-gray-200 px-2.5 py-0.5 rounded-full border border-white/10 max-w-[140px] truncate">
+                                        {user.name}
+                                    </span>
+                                )}
                             </Link>
                             <button
                                 id="logout-btn"

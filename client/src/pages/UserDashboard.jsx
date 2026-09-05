@@ -193,15 +193,11 @@ const UserDashboard = () => {
                 <div className="mb-8 pb-6 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-                            Welcome back, <span className="text-[#E50914]">{user?.name || 'User'}</span> 👋
+                            Welcome back, <span className="text-[#E50914]">{user?.name || 'User'}</span>
                         </h1>
-                        <div className="flex flex-wrap items-center gap-2.5 mt-2">
-                            <span className="text-xs font-semibold text-red-400 bg-[#E50914]/10 px-2.5 py-0.5 rounded border border-[#E50914]/20">
-                                {user?.username || `@${user?.email?.split('@')[0] || 'user'}`}
-                            </span>
-                            <span className="text-gray-600">·</span>
-                            <span className="text-gray-400 text-xs md:text-sm">{user?.email}</span>
-                        </div>
+                        <p className="text-gray-400 text-xs md:text-sm mt-1">
+                            {user?.email} · Manage your registered events and booking history
+                        </p>
                     </div>
                     <div>
                         <span className="text-xs px-3 py-1.5 rounded bg-white/5 border border-white/10 text-gray-300 font-medium capitalize">
