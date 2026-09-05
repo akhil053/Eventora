@@ -1,7 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -10,9 +12,44 @@ const Login = () => {
     const [showOTP, setShowOTP] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
-    const { login, verifyOTP } = useContext(AuthContext);
+    const { login, verifyOTP, googleLogin } = useContext(AuthContext);
     const navigate = useNavigate();
+
+    const handleGoogleResponse = useCallback(async (response) => {
+        setGoogleLoading(true);
+        setError('');
+        try {
+            const data = await googleLogin(response.credential);
+            if (data.role === 'admin') navigate('/admin');
+            else navigate('/dashboard');
+        } catch (err) {
+            setError(err.message || err || 'Google login failed');
+        } finally {
+            setGoogleLoading(false);
+        }
+    }, [googleLogin, navigate]);
+
+    useEffect(() => {
+        if (window.google && GOOGLE_CLIENT_ID) {
+            window.google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleGoogleResponse,
+            });
+            window.google.accounts.id.renderButton(
+                document.getElementById('google-signin-btn'),
+                {
+                    theme: 'filled_black',
+                    size: 'large',
+                    width: '100%',
+                    shape: 'rectangular',
+                    text: 'signin_with',
+                    logo_alignment: 'center',
+                }
+            );
+        }
+    }, [handleGoogleResponse]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -119,6 +156,25 @@ const Login = () => {
                             {loading ? 'Please wait...' : showOTP ? 'Verify code' : 'Sign in'}
                         </button>
                     </form>
+
+                    {/* Google Sign In */}
+                    {!showOTP && (
+                        <>
+                            <div className="flex items-center gap-3 my-5">
+                                <div className="flex-1 h-px bg-white/10"></div>
+                                <span className="text-gray-500 text-xs uppercase tracking-wider">or</span>
+                                <div className="flex-1 h-px bg-white/10"></div>
+                            </div>
+
+                            <div className="flex justify-center">
+                                <div id="google-signin-btn" style={{ minHeight: '44px', width: '100%' }}></div>
+                            </div>
+
+                            {googleLoading && (
+                                <p className="text-gray-400 text-xs text-center mt-3">Signing in with Google...</p>
+                            )}
+                        </>
+                    )}
 
                     <p className="text-gray-500 text-sm text-center mt-6">
                         New to Eventora?{' '}

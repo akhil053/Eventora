@@ -3,6 +3,9 @@ import bcrypt from "bcryptjs";
 import OTP from '../models/otp.models.js';
 import { sendOtpEmail } from '../utils/email.js';
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 
 const generateToken = (id , role ) => {
@@ -140,3 +143,66 @@ export const verifyOTP = async (req , res)=>{
     );
 
 }       
+
+// Google OAuth
+export const googleAuth = async (req, res) => {
+    try {
+        const { credential } = req.body;
+
+        if (!credential) {
+            return res.status(400).json({ message: "Google credential is required" });
+        }
+
+        // Verify the Google ID token
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        const { sub: googleId, email, name, email_verified } = payload;
+
+        if (!email_verified) {
+            return res.status(400).json({ message: "Google email is not verified" });
+        }
+
+        // Check if user already exists
+        let user = await User.findOne({ email });
+
+        if (user) {
+            // Link Google account if not already linked
+            if (!user.googleId) {
+                user.googleId = googleId;
+                if (user.authProvider === 'local') {
+                    user.authProvider = 'google';
+                }
+                user.isVerified = true;
+                await user.save();
+            }
+        } else {
+            // Create new user (no password needed for Google auth)
+            user = await User.create({
+                name,
+                email,
+                googleId,
+                authProvider: 'google',
+                role: 'user',
+                isVerified: true,
+            });
+        }
+
+        res.status(200).json({
+            message: "Google login successful",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                token: generateToken(user._id, user.role),
+            },
+        });
+    } catch (error) {
+        console.log("Google auth error:", error);
+        res.status(500).json({ message: "Google authentication failed" });
+    }
+};
